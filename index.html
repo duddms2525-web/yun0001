@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌿 나의 매일 운동 기록</title>
+<style>
+  /* ===== 색상은 여기서 쉽게 바꿀 수 있어요 ===== */
+  :root {
+    --bg: #f4faf5;
+    --card: #ffffff;
+    --text: #3b4a3f;
+    --sub: #7b8b80;
+    --green: #a8dfb9;
+    --green-dark: #5fae7a;
+    --pink: #ffd9e0;
+    --yellow: #fff3c4;
+    --blue: #d6ecff;
+    --line: #e3eee6;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1f2a23; --card: #2a372e; --text: #eaf4ec; --sub: #a9bbae;
+      --green: #4f8a62; --green-dark: #8fd3a5; --pink: #5a3a42;
+      --yellow: #5a5336; --blue: #34495c; --line: #3a4a3f;
+    }
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-size: 18px; line-height: 1.5;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 26px; text-align: center; margin: 8px 0 4px; }
+  .date { text-align: center; color: var(--sub); font-size: 18px; margin-bottom: 18px; }
+  .card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(80,120,90,.08); }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+
+  /* 체크 항목 */
+  .item { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 8px; border-radius: 14px; background: var(--bg); cursor: pointer; font-size: 19px; }
+  .item input { width: 26px; height: 26px; accent-color: var(--green-dark); flex-shrink: 0; }
+  .item:has(input:checked) { background: var(--green); }
+
+  /* 컨디션 */
+  .moods { display: flex; gap: 8px; }
+  .mood { flex: 1; border: 2px solid transparent; background: var(--yellow); border-radius: 14px; padding: 12px 4px; font-size: 17px; color: var(--text); cursor: pointer; font-family: inherit; }
+  .mood span { display: block; font-size: 30px; }
+  .mood.on { border-color: var(--green-dark); background: var(--pink); }
+
+  /* 메모 */
+  textarea, .memo { width: 100%; border: 2px solid var(--line); border-radius: 14px; padding: 12px; font-size: 18px; font-family: inherit; background: var(--bg); color: var(--text); }
+
+  /* 달성률 */
+  .percent { font-size: 40px; font-weight: bold; text-align: center; color: var(--green-dark); }
+  .bar { height: 22px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+  .fill { height: 100%; width: 0; background: var(--green-dark); border-radius: 999px; transition: width .3s; }
+
+  /* 버튼 */
+  .save { width: 100%; border: 0; background: var(--green-dark); color: #fff; font-size: 20px; font-weight: bold; padding: 16px; border-radius: 16px; cursor: pointer; font-family: inherit; }
+  .msg { text-align: center; color: var(--green-dark); min-height: 28px; margin-top: 8px; }
+
+  /* 기록 목록 */
+  .rec { padding: 12px 14px; border-radius: 14px; background: var(--blue); margin-bottom: 8px; }
+  .rec b { font-size: 18px; }
+  .rec small { display: block; color: var(--sub); font-size: 15px; }
+  .empty { color: var(--sub); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🌿 나의 매일 운동 기록</h1>
+  <div class="date" id="today"></div>
+
+  <div class="card">
+    <h2>💪 오늘의 운동</h2>
+    <div id="exerciseList"></div>
+  </div>
+
+  <div class="card">
+    <h2>💧 건강 습관</h2>
+    <div id="habitList"></div>
+  </div>
+
+  <div class="card">
+    <h2>오늘의 컨디션</h2>
+    <div class="moods" id="moods"></div>
+  </div>
+
+  <div class="card">
+    <h2>📝 오늘의 한 줄 메모</h2>
+    <textarea id="memo" rows="2" maxlength="100" placeholder="오늘 하루는 어땠나요?"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>📊 오늘의 달성률</h2>
+    <div class="percent" id="percent">0%</div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+  </div>
+
+  <button class="save" id="saveBtn">오늘 기록 저장하기</button>
+  <div class="msg" id="msg"></div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>📅 지난 기록</h2>
+    <div id="history"></div>
+  </div>
+
+</div>
+
+<script>
+  // ===== 항목은 여기서 쉽게 바꿀 수 있어요 =====
+  const EXERCISES = ["걷기 20분", "스트레칭 10분", "근력 운동 10분", "수영 또는 유산소 운동"];
+  const HABITS = ["물 충분히 마시기", "규칙적인 수면"];
+  const MOODS = [["😊", "좋음"], ["🙂", "보통"], ["😴", "피곤함"]];
+  const STORAGE_KEY = "exercise-records";
+
+  // ----- 저장소 (실패해도 앱이 멈추지 않게 보호) -----
+  let memoryStore = {};
+  function loadAll() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch (e) { return memoryStore; }
+  }
+  function saveAll(data) {
+    memoryStore = data;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); return true; }
+    catch (e) { return false; }
+  }
+
+  // ----- 오늘 날짜 -----
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const todayKey = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  document.getElementById("today").textContent =
+    now.getFullYear() + "년 " + (now.getMonth() + 1) + "월 " + now.getDate() + "일 (" + days[now.getDay()] + ")";
+
+  // ----- 화면 만들기 -----
+  const allItems = [...EXERCISES, ...HABITS];
+  function makeChecks(list, boxId) {
+    document.getElementById(boxId).innerHTML = list.map(name =>
+      '<label class="item"><input type="checkbox" data-name="' + name + '"><span>' + name + '</span></label>'
+    ).join("");
+  }
+  makeChecks(EXERCISES, "exerciseList");
+  makeChecks(HABITS, "habitList");
+
+  let mood = "";
+  document.getElementById("moods").innerHTML = MOODS.map(m =>
+    '<button type="button" class="mood" data-mood="' + m[0] + ' ' + m[1] + '"><span>' + m[0] + '</span>' + m[1] + '</button>'
+  ).join("");
+
+  const boxes = () => document.querySelectorAll('input[type="checkbox"]');
+
+  // ----- 달성률 계산 -----
+  function updateProgress() {
+    const done = [...boxes()].filter(b => b.checked).length;
+    const pct = Math.round(done / allItems.length * 100);
+    document.getElementById("percent").textContent = pct + "%";
+    document.getElementById("fill").style.width = pct + "%";
+    return pct;
+  }
+  boxes().forEach(b => b.addEventListener("change", updateProgress));
+
+  // ----- 컨디션 선택 -----
+  function setMood(value) {
+    mood = value;
+    document.querySelectorAll(".mood").forEach(btn =>
+      btn.classList.toggle("on", btn.dataset.mood === value));
+  }
+  document.querySelectorAll(".mood").forEach(btn =>
+    btn.addEventListener("click", () => setMood(btn.dataset.mood)));
+
+  // ----- 저장하기 -----
+  document.getElementById("saveBtn").addEventListener("click", () => {
+    const all = loadAll();
+    all[todayKey] = {
+      done: [...boxes()].filter(b => b.checked).map(b => b.dataset.name),
+      percent: updateProgress(),
+      mood: mood,
+      memo: document.getElementById("memo").value.trim()
+    };
+    const ok = saveAll(all);
+    document.getElementById("msg").textContent = ok ? "✅ 오늘 기록이 저장되었어요!" : "⚠️ 이 브라우저에서는 저장이 어려워요.";
+    showHistory();
+  });
+
+  // ----- 오늘 기록 불러오기 -----
+  function loadToday() {
+    const rec = loadAll()[todayKey];
+    if (!rec) return;
+    boxes().forEach(b => b.checked = rec.done.includes(b.dataset.name));
+    setMood(rec.mood || "");
+    document.getElementById("memo").value = rec.memo || "";
+    updateProgress();
+  }
+
+  // ----- 날짜별 기록 보기 -----
+  function showHistory() {
+    const all = loadAll();
+    const dates = Object.keys(all).sort().reverse();
+    const box = document.getElementById("history");
+    if (dates.length === 0) { box.innerHTML = '<div class="empty">아직 저장된 기록이 없어요.</div>'; return; }
+    box.innerHTML = dates.map(d => {
+      const r = all[d];
+      return '<div class="rec"><b>' + d + ' · ' + r.percent + '%</b> ' + (r.mood || "") +
+        '<small>' + (r.done.length ? r.done.join(", ") : "완료한 항목 없음") + '</small>' +
+        (r.memo ? '<small>📝 ' + r.memo.replace(/</g, "&lt;") + '</small>' : "") + '</div>';
+    }).join("");
+  }
+
+  loadToday();
+  updateProgress();
+  showHistory();
+</script>
+</body>
+</html>
